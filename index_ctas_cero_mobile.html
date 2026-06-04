@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>CTAS CERO VE - Móvil</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{--bg:#ecfdf5;--card:#fff;--ink:#123026;--muted:#64746d;--line:#bbf7d0;--main:#047857;--main2:#16a34a;--soft:#f0fdf4;--warn:#f97316;--bad:#dc2626;--blue:#0f766e}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#ecfdf5,#f7fee7);font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+.wrap{max-width:520px;margin:0 auto;padding:10px 10px 80px}.top{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#ecfdf5 75%,rgba(236,253,245,.6));padding:8px 0 6px}h1{font-size:18px;margin:0;letter-spacing:-.4px}.sub{font-size:11px;color:var(--muted);line-height:1.3;margin-top:2px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 18px rgba(5,150,105,.10);padding:10px;margin:8px 0}.status{font-size:11px;color:var(--muted)}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:7px}.filters .wide{grid-column:1/-1}label{display:block;font-size:9.5px;font-weight:900;color:var(--muted);text-transform:uppercase;margin:0 0 2px}select,input{width:100%;padding:9px 8px;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:12px;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{margin:0;min-height:86px}.kpi.big{grid-column:1/-1;min-height:92px;background:linear-gradient(135deg,#fff,#dcfce7)}.kpi .t{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase}.kpi .v{font-size:24px;font-weight:900;margin:5px 0;letter-spacing:-1px}.kpi .s{font-size:10px;color:#065f46;font-weight:800;background:#ecfdf5;border-radius:999px;padding:3px 7px;display:inline-block}.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;gap:6px;padding:7px}.tabs button{border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 10px;font-size:11px;font-weight:900;color:var(--ink)}.tabs button.active{background:linear-gradient(180deg,var(--main2),var(--main));color:#fff;border-color:var(--main)}.tab{display:none}.tab.active{display:block}.section-title{font-size:14px;font-weight:900;margin:12px 2px 6px;display:flex;justify-content:space-between;gap:8px;align-items:center}.btn{border:0;background:linear-gradient(180deg,var(--main2),var(--main));color:white;padding:9px 11px;border-radius:12px;font-weight:900;font-size:12px}.btn2{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 10px;border-radius:12px;font-weight:900;font-size:12px}.list{display:flex;flex-direction:column;gap:8px}.row{background:#fff;border:1px solid var(--line);border-radius:15px;padding:10px}.row:active{transform:scale(.99)}.rhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.name{font-size:13px;font-weight:900;line-height:1.15}.meta{font-size:10.5px;color:var(--muted);margin-top:2px}.num{font-weight:900;color:#065f46}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}.mini{background:var(--soft);border-radius:10px;padding:5px;text-align:center}.mini b{display:block;font-size:11px}.mini span{font-size:8.5px;color:var(--muted);font-weight:900}.badge{font-size:9.5px;font-weight:900;border-radius:999px;padding:4px 7px;white-space:nowrap}.b1{background:#ffedd5;color:#9a3412}.b2{background:#dbeafe;color:#1d4ed8}.b3{background:#fee2e2;color:#991b1b}.b4{background:#ccfbf1;color:#115e59}.ok{background:#dcfce7;color:#166534}.empty{font-size:12px;color:var(--muted);text-align:center;padding:22px}.actions{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.pill{font-size:10.5px;font-weight:900;padding:5px 8px;border-radius:999px;background:#ecfdf5;color:#065f46}.exporting{width:1200px!important;max-width:none!important;background:#fff!important;padding:16px!important}.exporting .wrap{max-width:none!important}.hide{display:none!important}
+</style>
+</head>
+<body>
+<div id="shotArea"><div class="wrap">
+  <div class="top">
+    <h1>CTAS CERO VE - Móvil</h1>
+    <div class="sub">Carga automática desde <b>CTAS_CERO_VE.csv</b> · Filtro inicial: <b>Recuperable S/70 a más</b></div>
+  </div>
+
+  <div class="card status" id="loadInfo">Cargando CTAS_CERO_VE.csv...</div>
+
+  <div class="card filters">
+    <div><label>Sede</label><select id="fSede"></select></div>
+    <div><label>Supervisor</label><select id="fGrupo"></select></div>
+    <div><label>Vendedor</label><select id="fVend"></select></div>
+    <div><label>Día</label><select id="fDia"></select></div>
+    <div><label>Estado</label><select id="fEstado"></select></div>
+    <div><label>Recuperable desde</label><input id="fValor" type="number" value="70" min="0" step="10"></div>
+    <div class="wide"><label>Buscar cliente</label><input id="fSearch" placeholder="Código o nombre"></div>
+    <div class="wide actions"><button class="btn2" onclick="resetFilters()">Limpiar filtros</button><button class="btn2" onclick="loadCsv()">Actualizar CSV</button></div>
+  </div>
+
+  <div class="kpis">
+    <div class="card kpi big" onclick="setMode('cero')"><div class="t">Clientes cero recuperables</div><div class="v" id="kCero">0</div><span class="s" id="kCeroS">S/ 0</span></div>
+    <div class="card kpi" onclick="setMode('recuperado')"><div class="t">Recuperados hoy</div><div class="v" id="kRec">0</div><span class="s" id="kRecS">PVTA S/0</span></div>
+    <div class="card kpi" onclick="setMode('c1')"><div class="t">Caída 1 mes</div><div class="v" id="kC1">0</div><span class="s" id="kC1S">S/0</span></div>
+    <div class="card kpi" onclick="setMode('c2')"><div class="t">Caída 2 meses</div><div class="v" id="kC2">0</div><span class="s" id="kC2S">S/0</span></div>
+    <div class="card kpi" onclick="setMode('c3')"><div class="t">3+ meses</div><div class="v" id="kC3">0</div><span class="s" id="kC3S">S/0</span></div>
+    <div class="card kpi" onclick="setMode('nunca')"><div class="t">Nunca compró</div><div class="v" id="kN">0</div><span class="s" id="kNS">S/0</span></div>
+  </div>
+
+  <div id="tabResumen" class="tab active">
+    <div class="section-title">Ranking supervisores <span class="pill" id="activeMode1">Cero</span></div>
+    <div id="rankGrupo" class="list"></div>
+    <div class="section-title">Ranking vendedores <button class="btn2" onclick="showTopBottom()">Top/Bottom</button></div>
+    <div id="rankVend" class="list"></div>
+  </div>
+
+  <div id="tabClientes" class="tab">
+    <div class="section-title">Clientes / WhatsApp <span class="pill" id="detailCount">0 clientes</span></div>
+    <div class="actions"><button class="btn" onclick="copyWhatsApp()">Copiar WhatsApp</button><button class="btn2" onclick="downloadImage()">Imagen PNG</button><button class="btn2" onclick="exportExcel()">Excel</button></div>
+    <div id="clientes" class="list"></div>
+  </div>
+
+  <div id="tabTop" class="tab">
+    <div class="section-title">Top 10 vendedores</div><div id="topList" class="list"></div>
+    <div class="section-title">Bottom 10 vendedores</div><div id="bottomList" class="list"></div>
+  </div>
+</div></div>
+
+<div class="tabs"><button id="bResumen" class="active" onclick="tab('Resumen')">Resumen</button><button id="bClientes" onclick="tab('Clientes')">Clientes</button><button id="bTop" onclick="tab('Top')">Top/Bottom</button></div>
+
+<script>
+const CSV_FILE='CTAS_CERO_VE.csv';
+let RAW=[], DATA=[], ROUTES=[], mode='cero';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const num=v=>Number(String(v??0).replace(/,/g,'').replace(/S\/\s*/i,''))||0;
+const money=n=>'S/ '+(Number(n)||0).toLocaleString('es-PE',{maximumFractionDigits:0});
+const fmt=n=>(Number(n)||0).toLocaleString('es-PE');
+const pct=(a,b)=>!b?'0%':(a/b*100).toFixed(0)+'%';
+const norm=s=>String(s??'').trim();
+const unique=a=>[...new Set(a.filter(x=>norm(x)))].sort((a,b)=>String(a).localeCompare(String(b)));
+function pick(r,names){for(const n of names){if(r[n]!==undefined)return r[n];} const keys=Object.keys(r); for(const n of names){const k=keys.find(x=>x.toLowerCase().trim()===n.toLowerCase().trim()); if(k)return r[k];} return '';}
+function parseCSV(txt){let rows=[],row=[],cur='',q=false; for(let i=0;i<txt.length;i++){const c=txt[i],n=txt[i+1]; if(c==='"'){ if(q&&n==='"'){cur+='"';i++;} else q=!q;} else if(c===','&&!q){row.push(cur);cur='';} else if((c==='\n'||c==='\r')&&!q){ if(c==='\r'&&n==='\n')i++; row.push(cur); if(row.some(v=>v!==''))rows.push(row); row=[]; cur='';} else cur+=c;} row.push(cur); if(row.some(v=>v!==''))rows.push(row); if(!rows.length)return []; const head=rows.shift().map(h=>h.trim()); return rows.map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]??''])));}
+async function loadCsv(){try{const res=await fetch(CSV_FILE+'?v='+Date.now()); if(!res.ok)throw new Error('No se encontró '+CSV_FILE); const txt=await res.text(); RAW=parseCSV(txt); normalize(RAW); $('loadInfo').innerHTML='CSV cargado: <b>'+CSV_FILE+'</b> · '+fmt(DATA.length)+' clientes únicos · '+fmt(ROUTES.length)+' rutas'; resetFilters(false);}catch(e){$('loadInfo').innerHTML='No se pudo cargar <b>'+CSV_FILE+'</b>. Sube el CSV junto al HTML en GitHub. Detalle: '+esc(e.message);}}
+function normalize(rows){const map=new Map(); ROUTES=[]; rows.forEach(r=>{const cliente=String(pick(r,['Cliente','CLIENTE','CodCliente','CODIGO','Código'])).replace(/\.0$/,'').padStart(6,'0'); if(!cliente||cliente==='000000')return; const sede=norm(pick(r,['SUCURSAL','Sede','sede'])); const grupo=norm(pick(r,['grupoventas','Grupo','Supervisor','SUPERVISOR'])); const vendedor=norm(pick(r,['Vendedor','VENDEDOR','CodVendedor'])); const dia=norm(pick(r,['DiaDeSemana','DIA','Día','Dia Visita'])); const o={sede,grupo,vendedor,cliente,nombre:norm(pick(r,['Nombre Cliente','CLIENTE NOMBRE','Nombre','RazonSocial'])),dia,enero:num(pick(r,['ENERO','Enero'])),febrero:num(pick(r,['FEBRERO','Febrero'])),marzo:num(pick(r,['MARZO','Marzo'])),abril:num(pick(r,['ABRIL','Abril'])),mayo:num(pick(r,['MAYO','Mayo'])),pvta:num(pick(r,['PVTA','Preventa','PREVENTA','Pvta']))}; ROUTES.push({cliente,sede,grupo,vendedor,dia}); if(!map.has(cliente))map.set(cliente,{...o,sedes:new Set(),grupos:new Set(),vendedores:new Set(),dias:new Set()}); const x=map.get(cliente); ['enero','febrero','marzo','abril','mayo','pvta'].forEach(k=>x[k]=Math.max(x[k],o[k])); if(o.nombre&&!x.nombre)x.nombre=o.nombre; [o.sede].forEach(v=>v&&x.sedes.add(v)); [o.grupo].forEach(v=>v&&x.grupos.add(v)); [o.vendedor].forEach(v=>v&&x.vendedores.add(v)); [o.dia].forEach(v=>v&&x.dias.add(v)); }); DATA=[...map.values()].map(x=>{x.sedes=[...x.sedes];x.grupos=[...x.grupos];x.vendedores=[...x.vendedores];x.dia=[...x.dias].join(' / '); const hist=[x.enero,x.febrero,x.marzo,x.abril].filter(v=>v>0); x.esCero=x.mayo<=0; x.recup=hist.length?hist.reduce((a,b)=>a+b,0)/hist.length:0; x.mejor=Math.max(0,x.enero,x.febrero,x.marzo,x.abril); x.ultMes=x.abril>0?'Abril':x.marzo>0?'Marzo':x.febrero>0?'Febrero':x.enero>0?'Enero':''; x.ult=x.abril>0?x.abril:x.marzo>0?x.marzo:x.febrero>0?x.febrero:x.enero>0?x.enero:0; x.estado=x.mayo>0?'Compró Mayo':x.abril>0?'Caída 1 mes':x.marzo>0?'Caída 2 meses':(x.febrero>0||x.enero>0)?'Caída 3+ meses':'Nunca compró'; return x;});}
+function fillSelect(id,arr){const old=$(id).value; $(id).innerHTML='<option value="">Todos</option>'+arr.map(v=>`<option>${esc(v)}</option>`).join(''); if(arr.includes(old))$(id).value=old;}
+function resetFilters(render=true){['fSede','fGrupo','fVend','fDia','fEstado','fSearch'].forEach(id=>$(id).value=''); $('fValor').value=70; fillFilters(); mode='cero'; if(render)renderAll(); else renderAll();}
+function fillFilters(){fillSelect('fSede',unique(ROUTES.map(r=>r.sede))); fillSelect('fGrupo',unique(ROUTES.filter(r=>!$('fSede').value||r.sede==$('fSede').value).map(r=>r.grupo))); fillSelect('fVend',unique(ROUTES.filter(routeOkPartial).map(r=>r.vendedor))); fillSelect('fDia',unique(ROUTES.filter(routeOkPartial).flatMap(r=>String(r.dia).split(' / ')))); fillSelect('fEstado',['Caída 1 mes','Caída 2 meses','Caída 3+ meses','Nunca compró','Recuperado hoy']);}
+function routeOkPartial(r){return (!$('fSede').value||r.sede==$('fSede').value)&&(!$('fGrupo').value||r.grupo==$('fGrupo').value)&&(!$('fVend').value||r.vendedor==$('fVend').value)&&(!$('fDia').value||String(r.dia).split(' / ').includes($('fDia').value));}
+function clientRouteOk(x){const rs=ROUTES.filter(r=>r.cliente==x.cliente&&routeOkPartial(r)); return rs.length>0||(!$('fSede').value&&!$('fGrupo').value&&!$('fVend').value&&!$('fDia').value);}
+function filtered(){const search=$('fSearch').value.toLowerCase(), est=$('fEstado').value, min=num($('fValor').value); return DATA.filter(x=>clientRouteOk(x)&&x.recup>=min&&(!search||x.cliente.toLowerCase().includes(search)||x.nombre.toLowerCase().includes(search))&&(!est||(est==='Recuperado hoy'?(x.esCero&&x.pvta>0):x.estado===est)));}
+function modeRows(a=filtered()){if(mode==='recuperado')return a.filter(x=>x.esCero&&x.pvta>0); if(mode==='c1')return a.filter(x=>x.estado==='Caída 1 mes'); if(mode==='c2')return a.filter(x=>x.estado==='Caída 2 meses'); if(mode==='c3')return a.filter(x=>x.estado==='Caída 3+ meses'); if(mode==='nunca')return a.filter(x=>x.estado==='Nunca compró'); return a.filter(x=>x.esCero);}
+function setMode(m){mode=m; renderAll(); tab('Clientes');}
+function renderAll(){renderKpis();renderRanks();renderClientes();renderTopBottom();$('activeMode1').textContent={cero:'Cero',recuperado:'Recuperados',c1:'Caída 1',c2:'Caída 2',c3:'3+ meses',nunca:'Nunca'}[mode];}
+function renderKpis(){const a=filtered(), cero=a.filter(x=>x.esCero), rec=a.filter(x=>x.esCero&&x.pvta>0), c1=a.filter(x=>x.estado==='Caída 1 mes'), c2=a.filter(x=>x.estado==='Caída 2 meses'), c3=a.filter(x=>x.estado==='Caída 3+ meses'), n=a.filter(x=>x.estado==='Nunca compró'); $('kCero').textContent=fmt(cero.length); $('kCeroS').textContent='Recuperable '+money(sum(cero,'recup')); $('kRec').textContent=fmt(rec.length); $('kRecS').textContent='PVTA '+money(sum(rec,'pvta')); $('kC1').textContent=fmt(c1.length); $('kC1S').textContent=money(sum(c1,'recup')); $('kC2').textContent=fmt(c2.length); $('kC2S').textContent=money(sum(c2,'recup')); $('kC3').textContent=fmt(c3.length); $('kC3S').textContent=money(sum(c3,'recup')); $('kN').textContent=fmt(n.length); $('kNS').textContent=money(sum(n,'recup'));}
+function sum(a,k){return a.reduce((t,x)=>t+(Number(x[k])||0),0)}
+function summarizeBy(key){const rows=modeRows(), m={}; rows.forEach(x=>{const keys=key==='grupo'?x.grupos:key==='vendedor'?x.vendedores:[x[key]||'Sin dato']; keys.filter(Boolean).forEach(k=>{m[k]??={key:k,total:0,recup:0,pvta:0,rec:0,c1:0,c2:0,c3:0,n:0}; const r=m[k]; r.total++; r.recup+=x.recup; r.pvta+=x.pvta; if(x.esCero&&x.pvta>0)r.rec++; if(x.estado==='Caída 1 mes')r.c1++; if(x.estado==='Caída 2 meses')r.c2++; if(x.estado==='Caída 3+ meses')r.c3++; if(x.estado==='Nunca compró')r.n++;});}); return Object.values(m).sort((a,b)=>b.recup-a.recup||b.total-a.total);}
+function renderRanks(){$('rankGrupo').innerHTML=cards(summarizeBy('grupo').slice(0,30),'grupo'); $('rankVend').innerHTML=cards(summarizeBy('vendedor').slice(0,40),'vendedor');}
+function cards(rows,type){if(!rows.length)return '<div class="empty">Sin datos con el filtro actual.</div>'; return rows.map((r,i)=>`<div class="row" onclick="selectFilter('${type}','${esc(String(r.key)).replace(/'/g,'&#39;')}')"><div class="rhead"><div><div class="name">${i+1}. ${esc(r.key)}</div><div class="meta">${fmt(r.total)} clientes · recuperados ${fmt(r.rec)}</div></div><div class="num">${money(r.recup)}</div></div><div class="grid4"><div class="mini"><b>${fmt(r.c1)}</b><span>1 mes</span></div><div class="mini"><b>${fmt(r.c2)}</b><span>2 meses</span></div><div class="mini"><b>${fmt(r.c3)}</b><span>3+</span></div><div class="mini"><b>${fmt(r.rec)}</b><span>hoy</span></div></div></div>`).join('');}
+function selectFilter(type,val){$(type==='grupo'?'fGrupo':'fVend').value=val.replace(/&amp;/g,'&'); fillFilters(); renderAll(); tab('Clientes');}
+function badge(st){return `<span class="badge ${st==='Caída 1 mes'?'b1':st==='Caída 2 meses'?'b2':st==='Caída 3+ meses'?'b3':st==='Nunca compró'?'b4':'ok'}">${esc(st)}</span>`}
+function renderClientes(){const rows=modeRows().sort((a,b)=>b.pvta-a.pvta||b.recup-a.recup); $('detailCount').textContent=fmt(rows.length)+' clientes'; $('clientes').innerHTML=rows.length?rows.map(x=>`<div class="row"><div class="rhead"><div><div class="name">${esc(x.cliente)} · ${esc(shortName(x.nombre))}</div><div class="meta">${esc((x.vendedores||[]).join(' / '))} · ${esc(x.dia||'')}</div></div>${badge(x.esCero&&x.pvta>0?'Recuperado hoy':x.estado)}</div><div class="grid4"><div class="mini"><b>${money(x.recup)}</b><span>recup</span></div><div class="mini"><b>${money(x.pvta)}</b><span>PVTA</span></div><div class="mini"><b>${money(x.ult)}</b><span>${x.ultMes||'últ.'}</span></div><div class="mini"><b>${money(x.mejor)}</b><span>mejor</span></div></div></div>`).join(''):'<div class="empty">Sin clientes con el filtro actual.</div>';}
+function shortName(n){let p=String(n||'').split(/\s+/).filter(Boolean); return p.slice(0,4).join(' ')}
+function renderTopBottom(){const s=summarizeBy('vendedor'); $('topList').innerHTML=cards([...s].sort((a,b)=>b.rec-a.rec||b.recup-a.recup).slice(0,10),'vendedor'); $('bottomList').innerHTML=cards([...s].sort((a,b)=>a.rec-b.rec||b.recup-a.recup).slice(0,10),'vendedor');}
+function showTopBottom(){renderTopBottom();tab('Top')}
+function tab(t){['Resumen','Clientes','Top'].forEach(x=>{$('tab'+x).classList.toggle('active',x===t);$('b'+x).classList.toggle('active',x===t);});}
+function copyWhatsApp(){const rows=modeRows().sort((a,b)=>String((a.vendedores||[''])[0]).localeCompare(String((b.vendedores||[''])[0]))||b.recup-a.recup); let txt=`*CTAS CERO VE*\nFiltro: Recuperable desde *${money(num($('fValor').value))}* | Supervisor *${$('fGrupo').value||'Todos'}* | Vendedor *${$('fVend').value||'Todos'}*\nClientes: *${fmt(rows.length)}* | Recuperable: *${money(sum(rows,'recup'))}*\n`; const by={}; rows.forEach(x=>(by[(x.vendedores||['Sin vendedor'])[0]]??=[]).push(x)); Object.keys(by).sort().forEach(v=>{txt+=`\n\n*${v}* - ${fmt(by[v].length)} ctes`; by[v].forEach((x,i)=>{txt+=`\n${i+1}. ${x.cliente} - *${shortName(x.nombre)}* | ${x.estado} | Recup: *${money(x.recup)}* | PVTA: *${money(x.pvta)}*${x.esCero&&x.pvta>0?' ✅ RECUPERADO':''}`;});}); navigator.clipboard.writeText(txt).then(()=>alert('Texto copiado para WhatsApp'));}
+async function downloadImage(){const el=$('shotArea'); el.classList.add('exporting'); const c=await html2canvas(el,{scale:2,backgroundColor:'#ffffff'}); el.classList.remove('exporting'); const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download='ctas_cero_ve_movil.png'; a.click();}
+function exportExcel(){const rows=modeRows().map(x=>({Cliente:x.cliente,Nombre:x.nombre,Vendedores:(x.vendedores||[]).join(' / '),Estado:x.estado,Recuperable:x.recup,PVTA:x.pvta,Enero:x.enero,Febrero:x.febrero,Marzo:x.marzo,Abril:x.abril,Mayo:x.mayo,UltMes:x.ultMes,UltCompra:x.ult,Mejor:x.mejor})); const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'CTAS_CERO'); XLSX.writeFile(wb,'ctas_cero_ve_filtrado.xlsx');}
+['fSede','fGrupo','fVend','fDia','fEstado'].forEach(id=>$(id).addEventListener('change',()=>{fillFilters();renderAll()})); ['fValor','fSearch'].forEach(id=>$(id).addEventListener('input',renderAll));
+loadCsv();
+</script>
+</body>
+</html>
