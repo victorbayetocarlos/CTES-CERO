@@ -18,7 +18,7 @@
 <body>
 <header>
   <h1>CTAS CERO VE</h1>
-  <div style="display:inline-block;margin:2px 0 6px;padding:4px 8px;border-radius:999px;background:#4ade80;color:#05220e;font-weight:900;font-size:11px">VERSIÓN NUEVA: FILTRO DiaDeSemana</div>
+  <div style="display:inline-block;margin:2px 0 6px;padding:4px 8px;border-radius:999px;background:#4ade80;color:#05220e;font-weight:900;font-size:11px">VERSIÓN NUEVA: CÓDIGO + 2 APELLIDOS + ÚLTIMA COMPRA</div>
   <div class="sub">Filtro inicial: <b>Mayo = 0</b> y <b>Recuperable ≥ S/ 70</b>. Archivo esperado: <b>CTAS_CERO_VE.csv</b></div>
 </header>
 <main class="wrap">
@@ -62,7 +62,7 @@
 
   <section id="tab-wasap" class="tab hide">
     <section class="panel">
-      <div class="title"><h2>Wasap</h2><span class="small">Cliente + recuperable + riesgo</span></div>
+      <div class="title"><h2>Wasap</h2><span class="small">Cliente + última compra + recuperable + riesgo</span></div>
       <div id="waPreview" class="client" style="white-space:pre-wrap;max-height:420px;overflow:auto"></div>
       <div class="btns">
         <button id="copy">Copiar WhatsApp</button>
@@ -121,6 +121,14 @@ function riesgo(e,f,m,a,my){
   if(m>0) return 'Caída 2 meses';
   return 'Caída 3+ meses';
 }
+function ultimoMesCompra(e,f,m,a,my){
+  if(my>0) return 'MAYO';
+  if(a>0) return 'ABRIL';
+  if(m>0) return 'MARZO';
+  if(f>0) return 'FEBRERO';
+  if(e>0) return 'ENERO';
+  return 'NUNCA';
+}
 function loadData(text){
   const rows=csvParse(text); if(rows.length<2) throw new Error('El CSV no tiene datos.');
   const h=rows[0];
@@ -151,7 +159,8 @@ function loadData(text){
       vendedor: idx.vendedor>=0 ? String(r[idx.vendedor]||'Sin vendedor').trim() : 'Sin vendedor',
       dia: idx.dia>=0 ? String(r[idx.dia]||'Sin día').trim() : 'Sin día',
       ene,feb,mar,abr,may,hoy,recuperable:rec,
-      riesgo: riesgo(ene,feb,mar,abr,may)
+      riesgo: riesgo(ene,feb,mar,abr,may),
+      ultimaCompra: ultimoMesCompra(ene,feb,mar,abr,may)
     };
   });
   base=raw.filter(x=>x.may===0).sort((a,b)=>b.recuperable-a.recuperable);
@@ -224,7 +233,7 @@ function detail(){
     let head='';
     if(x.vendedor!==lastVend){ lastVend=x.vendedor; lastRisk=''; head+=`<div class="row" style="background:#132542;margin-top:8px"><div><strong>Vendedor: ${escapeHtml(x.vendedor)}</strong><div class="meta">${escapeHtml(x.mesa)} · ${escapeHtml(x.dia)}</div></div></div>`; }
     if(x.riesgo!==lastRisk){ lastRisk=x.riesgo; head+=`<div class="small" style="margin:8px 2px 2px;font-weight:900;color:#dbeafe">${escapeHtml(x.riesgo)}</div>`; }
-    return head+`<div class="client"><div class="clientTop"><div><div class="clientName">${i+1}. ${escapeHtml(x.cliente)}</div><div class="clientMeta">${escapeHtml(x.vendedor)} · ${escapeHtml(x.mesa)} · ${escapeHtml(x.dia)}<br>Recuperable: <b>${money(x.recuperable)}</b>${x.hoy>0?' · Hoy: <b>'+money(x.hoy)+'</b>':''}</div></div><span class="risk ${riskClass(x.riesgo)}">${x.riesgo}</span></div></div>`;
+    return head+`<div class="client"><div class="clientTop"><div><div class="clientName">${i+1}. ${escapeHtml(clientLabel(x))}</div><div class="clientMeta">${escapeHtml(x.vendedor)} · ${escapeHtml(x.mesa)} · ${escapeHtml(x.dia)}<br>Últ. compra: <b>${escapeHtml(x.ultimaCompra)}</b> · Recuperable: <b>${money(x.recuperable)}</b>${x.hoy>0?' · Hoy: <b>'+money(x.hoy)+'</b>':''}</div></div><span class="risk ${riskClass(x.riesgo)}">${x.riesgo}</span></div></div>`;
   }).join(''):'<div class="small">Sin clientes con este filtro.</div>';
 }
 function gestion(){
@@ -235,6 +244,23 @@ function gestion(){
     return `<div class="row"><div><strong>${escapeHtml(v)}</strong><div class="meta">${escapeHtml(o.mesa)} · Relación: ${fmt(o.total)} · Vendidos hoy: ${fmt(o.hoy)} · Efectividad: ${pct}%</div></div><div class="pill">${fmt(o.hoy)}/${fmt(o.total)}</div></div>`
   }).join(''):'<div class="small">Sin datos</div>';
 }
+
+function shortClientName(name){
+  let s=String(name||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const stop = /\b(SAC|SA|EIRL|SRL|LTDA|SCRL|COMERCIAL|CORPORACION|EMPRESA|NEGOCIOS|INVERSIONES|SERVICIOS|DISTRIBUIDORA|DISTRIBUCIONES|BODEGA|MINIMARKET|MARKET|TIENDA|ABARROTES|DE|DEL|LA|LAS|LOS|EL)\b/g;
+  s=s.replace(/S\.A\.C\.|S\.A\.|E\.I\.R\.L\.|S\.R\.L\./g,' ');
+  s=s.replace(stop,' ');
+  s=s.replace(/[^A-ZÑ0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+  const parts=s.split(' ').filter(w=>w.length>1 && !/^\d+$/.test(w));
+  if(parts.length>=2) return parts.slice(-2).join(' ');
+  return s || String(name||'Cliente');
+}
+function clientLabel(x){
+  const code=String(x.codigo||'').trim();
+  const nm=shortClientName(x.cliente);
+  return code ? code+' - '+nm : nm;
+}
+
 function riskClass(r){return r.includes('1')?'r1':r.includes('2')?'r2':r.includes('3')?'r3':'r0'}
 function waText(){
   const dia=$('dia').value||'Todos', mesa=$('mesa').value||'Todas las mesas', vend=$('vend').value||'Todos los vendedores';
@@ -245,7 +271,7 @@ function waText(){
     if(x.vendedor!==lastVend){ lastVend=x.vendedor; lastRisk=''; t+=`\n*VENDEDOR: ${x.vendedor}*`; }
     if(x.riesgo!==lastRisk){ lastRisk=x.riesgo; t+=`\n_${x.riesgo}_\n`; }
     n++;
-    t+=`${n}. ${x.cliente} | ${money(x.recuperable)}\n`;
+    t+=`${n}. ${clientLabel(x)} | ${money(x.recuperable)}\n`;
   });
   return t;
 }
