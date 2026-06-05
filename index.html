@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>CTAS CERO VE</title>
+  <title>CTAS CERO VE v DiaDeSemana</title>
   <style>
     :root{
       --bg:#0b1220; --card:#121b2f; --card2:#16213a; --text:#eef4ff; --muted:#9fb0ca;
@@ -18,46 +18,70 @@
 <body>
 <header>
   <h1>CTAS CERO VE</h1>
+  <div style="display:inline-block;margin:2px 0 6px;padding:4px 8px;border-radius:999px;background:#4ade80;color:#05220e;font-weight:900;font-size:11px">VERSIÓN NUEVA: FILTRO DiaDeSemana</div>
   <div class="sub">Filtro inicial: <b>Mayo = 0</b> y <b>Recuperable ≥ S/ 70</b>. Archivo esperado: <b>CTAS_CERO_VE.csv</b></div>
 </header>
 <main class="wrap">
   <div id="msg" class="small">Leyendo CSV...</div>
 
-  <section class="grid" id="kpis"></section>
+  <nav class="bar" id="tabs">
+    <button class="chip active" data-tab="resumen">Resumen</button>
+    <button class="chip" data-tab="oportunidades">Oportunidades</button>
+    <button class="chip" data-tab="wasap">Wasap</button>
+    <button class="chip" data-tab="gestion">Gestión del día</button>
+  </nav>
 
   <section class="panel">
-    <div class="title"><h2>Filtros</h2><span id="count" class="small"></span></div>
+    <div class="title"><h2>Filtros principales</h2><span id="count" class="small"></span></div>
     <div class="filters">
+      <div><label>Día semana</label><select id="dia"></select></div>
       <div><label>Mesa / Grupo ventas</label><select id="mesa"></select></div>
       <div><label>Vendedor</label><select id="vend"></select></div>
-      <div><label>Riesgo</label><select id="riesgo"></select></div>
-      <div><label>Buscar cliente</label><input id="buscar" placeholder="Nombre o código" /></div>
+      <div><label>Recuperable mínimo S/</label><input id="minrec" type="number" inputmode="numeric" min="0" step="10" value="70" /></div>
     </div>
   </section>
 
-  <section class="panel">
-    <div class="title"><h2>Ranking Mesa</h2><span class="small">por recuperable</span></div>
-    <div id="rankMesa" class="rank"></div>
+  <section id="tab-resumen" class="tab">
+    <section class="grid" id="kpis"></section>
+    <section class="panel">
+      <div class="title"><h2>Ranking Mesa</h2><span class="small">por recuperable</span></div>
+      <div id="rankMesa" class="rank"></div>
+    </section>
+    <section class="panel">
+      <div class="title"><h2>Ranking Vendedor</h2><span class="small">por recuperable</span></div>
+      <div id="rankVend" class="rank"></div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="title"><h2>Ranking Vendedor</h2><span class="small">por recuperable</span></div>
-    <div id="rankVend" class="rank"></div>
+  <section id="tab-oportunidades" class="tab hide">
+    <section class="panel">
+      <div class="title"><h2>Oportunidades</h2><span class="small">máx. 100 clientes</span></div>
+      <div id="detail" class="detail"></div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="title"><h2>Detalle clientes</h2><span class="small">máx. 100</span></div>
-    <div id="detail" class="detail"></div>
-    <div class="btns">
-      <button id="copy">Copiar WhatsApp</button>
-      <a id="wa" class="btn secondary" href="#" target="_blank" rel="noopener">Abrir WhatsApp</a>
-    </div>
+  <section id="tab-wasap" class="tab hide">
+    <section class="panel">
+      <div class="title"><h2>Wasap</h2><span class="small">Cliente + recuperable + riesgo</span></div>
+      <div id="waPreview" class="client" style="white-space:pre-wrap;max-height:420px;overflow:auto"></div>
+      <div class="btns">
+        <button id="copy">Copiar WhatsApp</button>
+        <a id="wa" class="btn secondary" href="#" target="_blank" rel="noopener">Abrir WhatsApp</a>
+      </div>
+    </section>
+  </section>
+
+  <section id="tab-gestion" class="tab hide">
+    <section class="panel">
+      <div class="title"><h2>Gestión del día</h2><span class="small">clientes vendidos hoy / relación</span></div>
+      <div id="gestion" class="rank"></div>
+    </section>
   </section>
 </main>
 <script>
 const FILE = 'CTAS_CERO_VE.csv';
 const MIN_REC = 70;
-let raw=[], base=[], view=[];
+let raw=[], base=[], view=[], activeTab='resumen';
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n||0).toLocaleString('es-PE',{maximumFractionDigits:0});
 const money = n => 'S/ ' + Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:0,maximumFractionDigits:0});
@@ -101,19 +125,19 @@ function loadData(text){
   const rows=csvParse(text); if(rows.length<2) throw new Error('El CSV no tiene datos.');
   const h=rows[0];
   const idx={
-    cliente:pick(h,['cliente','nombrecliente','razonsocial','nomcliente','cliente_nombre']),
-    codigo:pick(h,['codcliente','codigo','codigocliente','codcte','cte','clienteid']),
+    cliente:pick(h,['cliente','nombrecliente','razonsocial','nomcliente','cliente_nombre','nombre cliente']),
+    codigo:pick(h,['codcliente','codigo','codigocliente','codcte','cte','clienteid','cod cliente']),
     mesa:pick(h,['grupoventas','grupo ventas','mesa','grupo','supervisor']),
     vendedor:pick(h,['vendedor','nomvendedor','nombrevendedor','codvendedor','asesor']),
+    dia:pick(h,['DiaDeSemana','dia de semana','diadesemana','dia semana','diasemana','dia visita','diavisita','dia_visita','visita','dia','dias visita','día visita']),
     ene:pick(h,['enero','ene','ventaenero','enero2026']),
     feb:pick(h,['febrero','feb','ventafebrero','febrero2026']),
     mar:pick(h,['marzo','mar','ventamarzo','marzo2026']),
     abr:pick(h,['abril','abr','ventaabril','abril2026']),
     may:pick(h,['mayo','may','ventamayo','mayo2026']),
-    hoy:pick(h,['hoy','preventa','venta hoy','ventahoy','pvta','recuperadohoy','recuperadoshoy'])
+    hoy:pick(h,['hoy','preventa','venta hoy','ventahoy','pvta','recuperadohoy','recuperadoshoy','venta dia','ventadia'])
   };
-  const must=['ene','feb','mar','abr','may'];
-  const missing=must.filter(k=>idx[k]<0);
+  const missing=['ene','feb','mar','abr','may'].filter(k=>idx[k]<0);
   if(missing.length) throw new Error('Faltan columnas de meses: '+missing.join(', '));
   raw=rows.slice(1).map(r=>{
     const ene=parseNum(r[idx.ene]), feb=parseNum(r[idx.feb]), mar=parseNum(r[idx.mar]), abr=parseNum(r[idx.abr]), may=parseNum(r[idx.may]);
@@ -125,12 +149,13 @@ function loadData(text){
       cliente: idx.cliente>=0 ? String(r[idx.cliente]||'').trim() : (idx.codigo>=0?String(r[idx.codigo]||'').trim():'Cliente'),
       mesa: idx.mesa>=0 ? String(r[idx.mesa]||'Sin mesa').trim() : 'Sin mesa',
       vendedor: idx.vendedor>=0 ? String(r[idx.vendedor]||'Sin vendedor').trim() : 'Sin vendedor',
+      dia: idx.dia>=0 ? String(r[idx.dia]||'Sin día').trim() : 'Sin día',
       ene,feb,mar,abr,may,hoy,recuperable:rec,
       riesgo: riesgo(ene,feb,mar,abr,may)
     };
   });
-  base=raw.filter(x=>x.may===0 && x.recuperable>=MIN_REC).sort((a,b)=>b.recuperable-a.recuperable);
-  initFilters(); apply();
+  base=raw.filter(x=>x.may===0).sort((a,b)=>b.recuperable-a.recuperable);
+  initTabs(); initFilters(); apply();
   $('msg').innerHTML='<span class="ok">CSV cargado correctamente.</span>';
 }
 function optionList(id, arr, all){
@@ -138,18 +163,28 @@ function optionList(id, arr, all){
   sel.innerHTML='<option value="">'+all+'</option>'+arr.map(x=>`<option>${escapeHtml(x)}</option>`).join('');
   if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
+function initTabs(){
+  document.querySelectorAll('#tabs .chip').forEach(b=>b.addEventListener('click',()=>{
+    activeTab=b.dataset.tab;
+    document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.toggle('active',x===b));
+    document.querySelectorAll('.tab').forEach(x=>x.classList.add('hide'));
+    $('tab-'+activeTab).classList.remove('hide');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }));
+}
 function initFilters(){
+  optionList('dia',[...new Set(base.map(x=>x.dia).filter(Boolean))].sort(),'Todos');
   optionList('mesa',[...new Set(base.map(x=>x.mesa))].sort(),'Todas');
-  optionList('riesgo',['Caída 1 mes','Caída 2 meses','Caída 3+ meses','Nunca compró'],'Todos');
-  ['mesa','vend','riesgo','buscar'].forEach(id=>$(id).addEventListener(id==='buscar'?'input':'change', apply));
+  ['dia','mesa','vend'].forEach(id=>$(id).addEventListener('change', apply));
+  $('minrec').addEventListener('input', apply);
   $('copy').addEventListener('click', copyWA);
 }
 function apply(){
-  const mesa=$('mesa').value, riesgo=$('riesgo').value, q=norm($('buscar').value);
-  const vendedores=[...new Set(base.filter(x=>!mesa||x.mesa===mesa).map(x=>x.vendedor))].sort();
+  const dia=$('dia').value, mesa=$('mesa').value, minRec=parseNum($('minrec').value)||0;
+  const vendedores=[...new Set(base.filter(x=>x.recuperable>=minRec&&(!dia||x.dia===dia)&&(!mesa||x.mesa===mesa)).map(x=>x.vendedor))].sort();
   optionList('vend',vendedores,'Todos');
   const vend=$('vend').value;
-  view=base.filter(x=>(!mesa||x.mesa===mesa)&&(!vend||x.vendedor===vend)&&(!riesgo||x.riesgo===riesgo)&&(!q||norm(x.cliente+' '+x.codigo).includes(q)));
+  view=base.filter(x=>x.recuperable>=minRec&&(!dia||x.dia===dia)&&(!mesa||x.mesa===mesa)&&(!vend||x.vendedor===vend));
   render();
 }
 function sum(arr, f){return arr.reduce((a,x)=>a+(f?f(x):x),0)}
@@ -159,27 +194,35 @@ function render(){
     ${kpi('Clientes Cero',fmt(k.cero))}${kpi('Caída 1',fmt(k.r1))}${kpi('Caída 2',fmt(k.r2))}${kpi('Caída 3+',fmt(k.r3))}
     ${kpi('Nunca compró',fmt(k.r0))}${kpi('Potencial Recuperable',money(k.pot),'wide')}${kpi('Recuperados Hoy',fmt(k.recHoy))}`;
   $('count').textContent=fmt(view.length)+' clientes';
-  rank('rankMesa','mesa'); rank('rankVend','vendedor'); detail(); updateWA();
+  rank('rankMesa','mesa'); rank('rankVend','vendedor'); detail(); gestion(); updateWA();
 }
 function kpi(l,v,c=''){return `<div class="kpi ${c}"><div class="lbl">${l}</div><div class="val">${v}</div></div>`}
 function rank(id, field){
-  const map=new Map(); view.forEach(x=>{const o=map.get(x[field])||{n:0,s:0};o.n++;o.s+=x.recuperable;map.set(x[field],o)});
+  const map=new Map(); view.forEach(x=>{const o=map.get(x[field])||{n:0,s:0,h:0};o.n++;o.s+=x.recuperable;if(x.hoy>0)o.h++;map.set(x[field],o)});
   const arr=[...map].sort((a,b)=>b[1].s-a[1].s).slice(0,10);
-  $(id).innerHTML=arr.length?arr.map(([name,o])=>`<div class="row"><div><strong>${escapeHtml(name)}</strong><div class="meta">${fmt(o.n)} clientes</div></div><div class="pill">${money(o.s)}</div></div>`).join(''):'<div class="small">Sin datos</div>';
+  $(id).innerHTML=arr.length?arr.map(([name,o])=>`<div class="row"><div><strong>${escapeHtml(name)}</strong><div class="meta">${fmt(o.n)} clientes · ${fmt(o.h)} vendidos hoy</div></div><div class="pill">${money(o.s)}</div></div>`).join(''):'<div class="small">Sin datos</div>';
 }
 function detail(){
   const arr=view.slice(0,100);
-  $('detail').innerHTML=arr.length?arr.map((x,i)=>`<div class="client"><div class="clientTop"><div><div class="clientName">${i+1}. ${escapeHtml(x.cliente)}</div><div class="clientMeta">${escapeHtml(x.vendedor)} · ${escapeHtml(x.mesa)}<br>Recuperable: <b>${money(x.recuperable)}</b>${x.hoy>0?' · Hoy: <b>'+money(x.hoy)+'</b>':''}</div></div><span class="risk ${riskClass(x.riesgo)}">${x.riesgo}</span></div></div>`).join(''):'<div class="small">Sin clientes con este filtro.</div>';
+  $('detail').innerHTML=arr.length?arr.map((x,i)=>`<div class="client"><div class="clientTop"><div><div class="clientName">${i+1}. ${escapeHtml(x.cliente)}</div><div class="clientMeta">${escapeHtml(x.vendedor)} · ${escapeHtml(x.mesa)} · ${escapeHtml(x.dia)}<br>Recuperable: <b>${money(x.recuperable)}</b>${x.hoy>0?' · Hoy: <b>'+money(x.hoy)+'</b>':''}</div></div><span class="risk ${riskClass(x.riesgo)}">${x.riesgo}</span></div></div>`).join(''):'<div class="small">Sin clientes con este filtro.</div>';
+}
+function gestion(){
+  const map=new Map(); view.forEach(x=>{const o=map.get(x.vendedor)||{mesa:x.mesa,total:0,hoy:0,rec:0};o.total++;o.rec+=x.recuperable;if(x.hoy>0)o.hoy++;map.set(x.vendedor,o)});
+  const arr=[...map].sort((a,b)=>b[1].hoy-a[1].hoy || b[1].total-a[1].total);
+  $('gestion').innerHTML=arr.length?arr.map(([v,o])=>{
+    const pct=o.total?Math.round(o.hoy/o.total*100):0;
+    return `<div class="row"><div><strong>${escapeHtml(v)}</strong><div class="meta">${escapeHtml(o.mesa)} · Relación: ${fmt(o.total)} · Vendidos hoy: ${fmt(o.hoy)} · Efectividad: ${pct}%</div></div><div class="pill">${fmt(o.hoy)}/${fmt(o.total)}</div></div>`
+  }).join(''):'<div class="small">Sin datos</div>';
 }
 function riskClass(r){return r.includes('1')?'r1':r.includes('2')?'r2':r.includes('3')?'r3':'r0'}
 function waText(){
-  const mesa=$('mesa').value||'Todas las mesas', vend=$('vend').value||'Todos los vendedores';
+  const dia=$('dia').value||'Todos', mesa=$('mesa').value||'Todas las mesas', vend=$('vend').value||'Todos los vendedores';
   const arr=view.slice(0,100);
-  let t=`*CTAS CERO VE*\nMesa: ${mesa}\nVendedor: ${vend}\nClientes: ${arr.length}\nPotencial: ${money(sum(arr,x=>x.recuperable))}\n\n`;
+  let t=`*CTAS CERO VE - OPORTUNIDADES*\nDía: ${dia}\nMesa: ${mesa}\nVendedor: ${vend}\nClientes: ${arr.length}\nPotencial: ${money(sum(arr,x=>x.recuperable))}\n\n`;
   t+=arr.map((x,i)=>`${i+1}. ${x.cliente} | ${money(x.recuperable)} | ${x.riesgo}`).join('\n');
   return t;
 }
-function updateWA(){ $('wa').href='https://wa.me/?text='+encodeURIComponent(waText()); }
+function updateWA(){ const t=waText(); $('waPreview').textContent=t; $('wa').href='https://wa.me/?text='+encodeURIComponent(t); }
 async function copyWA(){ try{ await navigator.clipboard.writeText(waText()); $('copy').textContent='Copiado ✓'; setTimeout(()=>$('copy').textContent='Copiar WhatsApp',1400);}catch(e){alert('No se pudo copiar. Usa Abrir WhatsApp.')} }
 function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 fetch(FILE,{cache:'no-store'}).then(r=>{if(!r.ok) throw new Error('No encontré '+FILE+' en la misma carpeta del index.html'); return r.text()}).then(loadData).catch(e=>{$('msg').innerHTML='<div class="err"><b>Error:</b> '+escapeHtml(e.message)+'<br><br>Sube el archivo como <b>CTAS_CERO_VE.csv</b> junto a este <b>index.html</b> en GitHub Pages.</div>';});
