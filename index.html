@@ -133,7 +133,7 @@ function loadData(text){
   const rows=csvParse(text); if(rows.length<2) throw new Error('El CSV no tiene datos.');
   const h=rows[0];
   const idx={
-    cliente:pick(h,['cliente','nombrecliente','razonsocial','nomcliente','cliente_nombre','nombre cliente']),
+    cliente:pick(h,['nombrecliente','nombre cliente','nomcliente','razonsocial','razon social','cliente_nombre','desccliente','descripcioncliente','descripcion cliente','nombres','nombre','cliente']),
     codigo:pick(h,['codcliente','codigo','codigocliente','codcte','cte','clienteid','cod cliente']),
     mesa:pick(h,['grupoventas','grupo ventas','mesa','grupo','supervisor']),
     vendedor:pick(h,['vendedor','nomvendedor','nombrevendedor','codvendedor','asesor']),
@@ -145,6 +145,8 @@ function loadData(text){
     may:pick(h,['mayo','may','ventamayo','mayo2026']),
     hoy:pick(h,['hoy','preventa','venta hoy','ventahoy','pvta','recuperadohoy','recuperadoshoy','venta dia','ventadia'])
   };
+  const clientCandidates=['nombrecliente','nombre cliente','nomcliente','razonsocial','razon social','cliente_nombre','desccliente','descripcioncliente','descripcion cliente','nombres','nombre','cliente']
+    .map(n=>pick(h,[n])).filter(i=>i>=0);
   const missing=['ene','feb','mar','abr','may'].filter(k=>idx[k]<0);
   if(missing.length) throw new Error('Faltan columnas de meses: '+missing.join(', '));
   raw=rows.slice(1).map(r=>{
@@ -152,9 +154,17 @@ function loadData(text){
     const positivos=[ene,feb,mar,abr].filter(x=>x>0);
     const rec=positivos.length ? positivos.reduce((a,b)=>a+b,0)/positivos.length : 0;
     const hoy=idx.hoy>=0?parseNum(r[idx.hoy]):0;
+    const code = idx.codigo>=0 ? String(r[idx.codigo]||'').trim() : '';
+    let cli = '';
+    for(const ci of clientCandidates){
+      const val = String(r[ci]||'').trim();
+      if(val && val !== code && !isMostlyCode(val)) { cli = val; break; }
+    }
+    if(!cli && idx.cliente>=0) cli = String(r[idx.cliente]||'').trim();
+    if(!cli || cli===code) cli = 'Cliente';
     return {
-      codigo: idx.codigo>=0 ? String(r[idx.codigo]||'').trim() : '',
-      cliente: idx.cliente>=0 ? String(r[idx.cliente]||'').trim() : (idx.codigo>=0?String(r[idx.codigo]||'').trim():'Cliente'),
+      codigo: code,
+      cliente: cli,
       mesa: idx.mesa>=0 ? String(r[idx.mesa]||'Sin mesa').trim() : 'Sin mesa',
       vendedor: idx.vendedor>=0 ? String(r[idx.vendedor]||'Sin vendedor').trim() : 'Sin vendedor',
       dia: idx.dia>=0 ? String(r[idx.dia]||'Sin día').trim() : 'Sin día',
@@ -245,6 +255,15 @@ function gestion(){
   }).join(''):'<div class="small">Sin datos</div>';
 }
 
+function isMostlyCode(v){
+  const s=String(v||'').trim();
+  if(!s) return true;
+  const cleaned=s.replace(/[\s\-_.]/g,'');
+  if(/^\d+$/.test(cleaned)) return true;
+  const letters=(cleaned.match(/[A-Za-zÁÉÍÓÚÑáéíóúñ]/g)||[]).length;
+  const digits=(cleaned.match(/\d/g)||[]).length;
+  return digits>0 && letters<=2 && digits>=letters;
+}
 function shortClientName(name){
   let s=String(name||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const stop = /\b(SAC|SA|EIRL|SRL|LTDA|SCRL|COMERCIAL|CORPORACION|EMPRESA|NEGOCIOS|INVERSIONES|SERVICIOS|DISTRIBUIDORA|DISTRIBUCIONES|BODEGA|MINIMARKET|MARKET|TIENDA|ABARROTES|DE|DEL|LA|LAS|LOS|EL)\b/g;
@@ -258,7 +277,8 @@ function shortClientName(name){
 function clientLabel(x){
   const code=String(x.codigo||'').trim();
   const nm=shortClientName(x.cliente);
-  return code ? code+' - '+nm : nm;
+  if(code && nm && nm!==code && nm!=='CLIENTE') return code+' - '+nm;
+  return code || nm || 'Cliente';
 }
 
 function riskClass(r){return r.includes('1')?'r1':r.includes('2')?'r2':r.includes('3')?'r3':'r0'}
